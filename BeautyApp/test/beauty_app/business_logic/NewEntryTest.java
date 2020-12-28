@@ -1,10 +1,15 @@
 package beauty_app.business_logic;
 
+import beauty_app.BeautyApp;
 import beauty_app.database.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -12,6 +17,9 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@ContextConfiguration(classes = { BeautyApp.class })
 class NewEntryTest {
     Entry newEntry;
     Service service;
@@ -30,9 +38,7 @@ class NewEntryTest {
 
     @BeforeEach
     public void setUp() {
-        //repo = Repository.getInstance();
-
-        master = new Master("testMaster","testMaster","testMaster", Service.ServiceType.HAIRDRESSING);
+        master = new Master("testMaster", Service.ServiceType.HAIRDRESSING,"testMaster");
         master = masterService.addMaster(master);
 
         service = new Service("testService", Service.ServiceType.HAIRDRESSING,45);
@@ -44,8 +50,8 @@ class NewEntryTest {
         client = clientService.getClient(client.getPhone());
         clientService.removeClient(client);
         masterService.removeMaster(master);
-        servicesService.removeService(service);
         entryService.removeEntry(newEntry);
+        servicesService.removeService(service);
     }
 
     @Test
@@ -59,19 +65,34 @@ class NewEntryTest {
             possibleTime.add(i + ":00");
             possibleTime.add(i + ":30");
         }
-       // possibleTime = master.getFreeTime(possibleTime,format,"2020-06-21");
 
         DateFormat timeFormat = new SimpleDateFormat("HH:mm");
         Date time = timeFormat.parse(possibleTime.get(0));
 
-        List<Service> possibleServices = master.getPossibleServices();
-        assertTrue(possibleServices.get(0).getType().equals(master.getServices()));
+        List<Service> possibleServices = servicesService.getServices(master.getServices());
+
         assertTrue(possibleServices.contains(service));
 
         client = new Client("testClient", "0(000)-000-00-00");
 
         newEntry = new Entry(date, time,master,possibleServices, client);;
 
-        //assertTrue(newEntry.addEntry());
+        assertTrue(addEntry(newEntry));
+    }
+
+    private Boolean addEntry(Entry entry){
+        if(entry.getClient().getId() == null) {
+            Client cl = clientService.getClient(entry.getClient().getPhone());
+            if (cl == null)
+                cl = clientService.addClient(entry.getClient());
+            if (cl == null)
+                return false;
+            entry.setClient(cl);
+        }
+        Entry savedEntry = entryService.addEntry(entry);
+        if (savedEntry.getId() == 0)
+            return false;
+        entry.setId(savedEntry.getId());
+        return true;
     }
 }

@@ -1,10 +1,15 @@
 package beauty_app.business_logic;
 
+import beauty_app.BeautyApp;
 import beauty_app.database.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -13,6 +18,9 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@ContextConfiguration(classes = { BeautyApp.class })
 class TransferEntryTest {
     @Autowired
     ClientService clientService;
@@ -21,23 +29,15 @@ class TransferEntryTest {
     @Autowired
     ServicesService servicesService;
     @Autowired
-    AdminService adminService;
-    @Autowired
     EntryService entryService;
     Entry entry;
     Service service;
     Master master;
     Client client;
-    Admin admin;
 
     @BeforeEach
     public void setUp() {
-        //repo = Repository.getInstance();
-
-        admin = new Admin("testAdmin", "testAdmin");
-        admin = adminService.addAdmin(admin);
-
-        master = new Master("testMaster","testMaster","testMaster", Service.ServiceType.HAIRDRESSING);
+        master = new Master("testMaster", Service.ServiceType.HAIRDRESSING,"testMaster");
         master = masterService.addMaster(master);
 
         service = new Service("testService", Service.ServiceType.HAIRDRESSING,45);
@@ -54,7 +54,7 @@ class TransferEntryTest {
             DateFormat timeFormat = new SimpleDateFormat("HH:mm");
             Date time = timeFormat.parse("15:30");
             entry = new Entry(date,time,master,services,client);
-            //entry.addEntry();
+            addEntry(entry);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -62,21 +62,33 @@ class TransferEntryTest {
 
     @AfterEach
     public void tearDown() {
-        adminService.removeAdmin(admin);
         clientService.removeClient(client);
         masterService.removeMaster(master);
-        servicesService.removeService(service);
         entryService.removeEntry(entry);
+        servicesService.removeService(service);
     }
 
     @Test
     public void testTransferEntry() throws Exception {
-        assertTrue(admin.authorize("testAdmin"));
+        entry.setState(Entry.EntryState.EXECUTING);
+        assertTrue(entryService.updateEntry(entry));
+        Entry entry1 = entryService.getEntry(entry.getId());
+        assertTrue(entry1.getState().equals(Entry.EntryState.EXECUTING));
+    }
 
-        admin.transferEntry(entry);
-        assertTrue(entry.getState().equals(Entry.EntryState.EXECUTING));
-
-        entry = entryService.getEntry(entry.getId());
-        assertTrue(entry.getState().equals(Entry.EntryState.EXECUTING));
+    private Boolean addEntry(Entry entry){
+        if(entry.getClient().getId() == null) {
+            Client cl = clientService.getClient(entry.getClient().getPhone());
+            if (cl == null)
+                cl = clientService.addClient(entry.getClient());
+            if (cl == null)
+                return false;
+            entry.setClient(cl);
+        }
+        Entry savedEntry = entryService.addEntry(entry);
+        if (savedEntry.getId() == 0)
+            return false;
+        entry.setId(savedEntry.getId());
+        return true;
     }
 }

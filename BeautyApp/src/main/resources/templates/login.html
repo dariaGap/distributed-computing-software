@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>BeautyApp: Вход в систему</title>
+</head>
+<body>
+<form method="POST" action="/login">
+    <p style="text-align: center">
+        Логин:
+        <input type="text" id="username" name="username" required>
+    </p>
+    <p style="text-align: center">
+        Пароль:
+        <input type="password" id="password" name="password" required>
+    </p>
+    <p style="text-align: center">
+        <input value="Отмена" type="button" onclick="location.href='/'"/>
+        <input value="Войти" type="submit"/>
+    </p>
+</form>
+</body>
+</html>
